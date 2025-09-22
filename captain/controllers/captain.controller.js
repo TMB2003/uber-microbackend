@@ -5,7 +5,7 @@ const blacklistTokenModel = require('../models/blacklisttoken.model');
 
 module.exports.register = async (req, res) => {
     try{
-        const {name, email, password} = req.body;
+        const {name, email, password, isAvailable} = req.body;
         const captain = await captainModel.findOne({email});
 
         if(captain){
@@ -13,7 +13,7 @@ module.exports.register = async (req, res) => {
         }
 
         const hash = await bcrypt.hash(password, 10);
-        const newcaptain = new captainModel({name, email, password: hash});
+        const newcaptain = new captainModel({name, email, password: hash, isAvailable});
 
         await newcaptain.save();
 
