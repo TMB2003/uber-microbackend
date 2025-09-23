@@ -2,6 +2,10 @@ const userModel = require('../models/user.model');
 const bcrypt = require('bcrypt');
 const jwt = require('jsonwebtoken');
 const blacklistTokenModel = require('../models/blacklisttoken.model');
+const rabbit = require('../service/rabbit');
+
+// In-memory queue for user long-poll requests to get rides
+const pendingRidePolls = [];
 
 module.exports.register = async (req, res) => {
     try{
@@ -80,3 +84,45 @@ module.exports.getProfile = async (req, res) => {
         return res.status(500).json({ message: error.message});
     }
 }
+
+module.exports.getRides = async (req, res) => {
+    try {
+        const timeoutMs = 25000;
+        let settled = false;
+
+        const resolveFn = (payload) => {
+            if (settled) return;
+            settled = true;
+            clearTimeout(timeoutId);
+            res.set('Cache-Control', 'no-cache, no-store, must-revalidate');
+            res.status(200).json(payload);
+        };
+
+        pendingRidePolls.push(resolveFn);
+
+        const timeoutId = setTimeout(() => {
+            if (settled) return;
+            settled = true;
+            const idx = pendingRidePolls.indexOf(resolveFn);
+            if (idx !== -1) pendingRidePolls.splice(idx, 1);
+            res.set('Cache-Control', 'no-cache, no-store, must-revalidate');
+            res.status(204).send();
+        }, timeoutMs);
+    } catch (error) {
+        return res.status(500).json({ message: error.message});
+    }
+}
+
+// Subscribe once to ride.created and flush pending user polls
+rabbit.subscribeToRabbitMQ('ride.created', (ride) => {
+    try {
+        if (pendingRidePolls.length > 0) {
+            const listeners = pendingRidePolls.splice(0, pendingRidePolls.length);
+            listeners.forEach((resolveFn) => {
+                try { resolveFn({ ride }); } catch (_) {}
+            });
+        }
+    } catch (err) {
+        console.error('Error delivering ride to user polls:', err);
+    }
+});

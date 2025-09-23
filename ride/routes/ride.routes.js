@@ -4,5 +4,7 @@ const authMiddleware = require('../middleware/auth.middleware');
 const rideController = require('../controllers/ride.controller');
 
 router.post('/create-ride', authMiddleware.userAuth, rideController.createRide);
+router.put('/accept-ride', authMiddleware.captainAuth, rideController.acceptRide);
+router.put('/reject-ride', authMiddleware.captainAuth, rideController.rejectRide);
 
 module.exports = router;

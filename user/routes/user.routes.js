@@ -7,6 +7,7 @@ router.post('/register', userController.register);
 router.post('/login', userController.login);
 router.get('/logout', userController.logout);
 router.get('/profile', authMiddleware.userAuth, userController.getProfile);
+router.get('/rides', authMiddleware.userAuth, userController.getRides);
 
 
 module.exports = router;
