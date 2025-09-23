@@ -5,7 +5,7 @@ const blacklistTokenModel = require('../models/blacklisttoken.model');
 
 module.exports.register = async (req, res) => {
     try{
-        const {name, email, password, isAvailable} = req.body;
+        const {name, email, password} = req.body;
         const captain = await captainModel.findOne({email});
 
         if(captain){
@@ -13,7 +13,7 @@ module.exports.register = async (req, res) => {
         }
 
         const hash = await bcrypt.hash(password, 10);
-        const newcaptain = new captainModel({name, email, password: hash, isAvailable});
+        const newcaptain = new captainModel({name, email, password: hash});
 
         await newcaptain.save();
 
@@ -75,6 +75,20 @@ module.exports.getProfile = async (req, res) => {
             return res.status(404).json({ message: 'Captain not found'});
         }
         delete captain._doc.password;
+        res.send(captain);
+    }catch(error){
+        return res.status(500).json({ message: error.message});
+    }
+}
+
+module.exports.toggleAvailability = async (req, res) => {
+    try{
+        const captain = await captainModel.findById(req.captain.id);
+        if(!captain){
+            return res.status(404).json({ message: 'Captain not found'});
+        }
+        captain.isAvailable = !captain.isAvailable;
+        await captain.save();
         res.send(captain);
     }catch(error){
         return res.status(500).json({ message: error.message});
