@@ -1,9 +1,11 @@
 const jwt = require('jsonwebtoken');
 const axios = require('axios');
 
-module.exports = userAuth = async (req, res, next) => {
+module.exports.userAuth = async (req, res, next) => {
     try {
-        const token = req.cookies.token || req.headers.authorization.split(' ')[1];
+        const authHeader = req.headers && req.headers.authorization ? req.headers.authorization : '';
+        const bearerToken = authHeader.startsWith('Bearer ') ? authHeader.slice(7) : (authHeader.includes(' ') ? authHeader.split(' ')[1] : '');
+        const token = req.cookies?.token || bearerToken;
         if (!token) {
             return res.status(401).json({ message: 'Unauthorized' });
         }
@@ -22,7 +24,7 @@ module.exports = userAuth = async (req, res, next) => {
         req.user = user;
         next();
     } catch (error) {
-        res.status(500).json({ message: 'Server Error' });
+        const status = error.response?.status || 500;
+        res.status(status).json({ message: error.response?.data?.message || 'Server Error' });
     }
 };
-
