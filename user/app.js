@@ -5,8 +5,11 @@ dotenv.config();
 const app = express();
 const userRoutes = require('./routes/user.routes');
 const connectDB = require('./db/db');
-
 connectDB();
+
+const rabbit = require('./service/rabbit');
+rabbit.connect();
+
 
 
 app.use(express.json());
